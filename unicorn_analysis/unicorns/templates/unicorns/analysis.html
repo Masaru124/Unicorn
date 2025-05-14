@@ -41,6 +41,47 @@
     <div class="container mt-4">
       <h1 class="mb-4">Unicorn Analysis</h1>
 
+      <form method="get" class="mb-4">
+        <div class="row g-3 align-items-center">
+          <div class="col-auto">
+            <label for="country" class="col-form-label">Country:</label>
+          </div>
+          <div class="col-auto">
+            <select id="country" name="country" class="form-select">
+              <option value="">All</option>
+              {% for country in all_countries %}
+              <option value="{{ country }}" {% if country == selected_country %}selected{% endif %}>{{ country }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-auto">
+            <label for="industry" class="col-form-label">Industry:</label>
+          </div>
+          <div class="col-auto">
+            <select id="industry" name="industry" class="form-select">
+              <option value="">All</option>
+              {% for industry in all_industries %}
+              <option value="{{ industry }}" {% if industry == selected_industry %}selected{% endif %}>{{ industry }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-auto">
+            <label for="financial_stage" class="col-form-label">Financial Stage:</label>
+          </div>
+          <div class="col-auto">
+            <select id="financial_stage" name="financial_stage" class="form-select">
+              <option value="">All</option>
+              {% for stage in all_financial_stages %}
+              <option value="{{ stage }}" {% if stage == selected_financial_stage %}selected{% endif %}>{{ stage }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-auto">
+            <button type="submit" class="btn btn-primary">Apply Filters</button>
+          </div>
+        </div>
+      </form>
+
       <h2>Summary</h2>
       <ul class="list-group mb-4">
         <li class="list-group-item">
@@ -68,6 +109,12 @@
         height="400"
         class="mb-4"
       ></canvas>
+
+      <h2>Top Countries by Valuation</h2>
+      <canvas id="topCountriesChart" width="600" height="400" class="mb-4"></canvas>
+
+      <h2>Top Industries by Valuation</h2>
+      <canvas id="topIndustriesChart" width="600" height="400" class="mb-4"></canvas>
 
       <script>
         const countryCtx = document.getElementById('countryChart').getContext('2d');
@@ -145,7 +192,6 @@
           }
         });
 
-        // Bar chart for Top Countries by Valuation
         const topCountriesCtx = document.getElementById('topCountriesChart').getContext('2d');
         const topCountriesChart = new Chart(topCountriesCtx, {
           type: 'bar',
@@ -179,7 +225,6 @@
           }
         });
 
-        // Bar chart for Top Industries by Valuation
         const topIndustriesCtx = document.getElementById('topIndustriesChart').getContext('2d');
         const topIndustriesChart = new Chart(topIndustriesCtx, {
           type: 'bar',

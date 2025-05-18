@@ -2,7 +2,17 @@ from django.shortcuts import render
 from .models import UnicornCompany
 from django.db.models import Avg, Count, Sum
 from django.db.models.functions import TruncYear
+import io
 import json
+
+import pandas as pd
+from django.http import HttpResponse, JsonResponse
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+import matplotlib.pyplot as plt
+from io import BytesIO
+from openpyxl import Workbook
+from openpyxl.chart import PieChart, Reference
 
 def home(request):
     unicorns = UnicornCompany.objects.all()
@@ -107,3 +117,109 @@ def analysis(request):
         'selected_financial_stage': financial_stage_filter,
     }
     return render(request, 'unicorns/analysis.html', context)
+
+def export_excel(request):
+    # Export filtered unicorns data as Excel with charts recreated
+    country_filter = request.GET.get('country', '')
+    industry_filter = request.GET.get('industry', '')
+    financial_stage_filter = request.GET.get('financial_stage', '')
+
+    unicorns_qs = UnicornCompany.objects.all()
+    if country_filter:
+        unicorns_qs = unicorns_qs.filter(country=country_filter)
+    if industry_filter:
+        unicorns_qs = unicorns_qs.filter(industry=industry_filter)
+    if financial_stage_filter:
+        unicorns_qs = unicorns_qs.filter(financial_stage=financial_stage_filter)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Unicorns Data"
+
+    headers = ['Name', 'Valuation', 'Date Joined', 'Country', 'City', 'Industry', 'Investors',
+               'Founded Year', 'Total Raised', 'Financial Stage', 'Investors Count', 'Deal Terms', 'Portfolio Exits']
+    ws.append(headers)
+
+    for unicorn in unicorns_qs:
+        ws.append([
+            unicorn.name,
+            unicorn.valuation,
+            unicorn.date_joined.strftime('%Y-%m-%d') if unicorn.date_joined else '',
+            unicorn.country,
+            unicorn.city,
+            unicorn.industry,
+            unicorn.investors,
+            unicorn.founded_year,
+            unicorn.total_raised,
+            unicorn.financial_stage,
+            unicorn.investors_count,
+            unicorn.deal_terms,
+            unicorn.portfolio_exits
+        ])
+
+    # Prepare data for charts
+    country_counts = unicorns_qs.values('country').annotate(count=Count('id')).order_by('-count')
+    countries = [entry['country'] for entry in country_counts]
+    country_data = [entry['count'] for entry in country_counts]
+
+    industry_counts = unicorns_qs.values('industry').annotate(count=Count('id')).order_by('-count')
+    industries = [entry['industry'] for entry in industry_counts]
+    industry_data = [entry['count'] for entry in industry_counts]
+
+    financial_stage_counts = unicorns_qs.values('financial_stage').annotate(count=Count('id')).order_by('-count')
+    financial_stages = [entry['financial_stage'] or 'Unknown' for entry in financial_stage_counts]
+    financial_stage_data = [entry['count'] for entry in financial_stage_counts]
+
+    # Add charts to Excel
+    def add_pie_chart(ws, data_labels, data_values, title, pos):
+        from openpyxl.chart import PieChart
+        chart = PieChart()
+        chart.title = title
+        data_ref = Reference(ws, min_col=pos+2, min_row=2, max_row=len(data_values)+1)
+        labels_ref = Reference(ws, min_col=pos+1, min_row=2, max_row=len(data_labels)+1)
+        chart.add_data(data_ref, titles_from_data=False)
+        chart.set_categories(labels_ref)
+        ws.add_chart(chart, f"{chr(65+pos)}15")
+
+    # Write chart data to sheet
+    start_row = 2
+    ws.cell(row=1, column=15, value="Country")
+    ws.cell(row=1, column=16, value="Count")
+    for i, (label, value) in enumerate(zip(countries, country_data), start=start_row):
+        ws.cell(row=i, column=15, value=label)
+        ws.cell(row=i, column=16, value=value)
+
+    ws.cell(row=1, column=18, value="Industry")
+    ws.cell(row=1, column=19, value="Count")
+    for i, (label, value) in enumerate(zip(industries, industry_data), start=start_row):
+        ws.cell(row=i, column=18, value=label)
+        ws.cell(row=i, column=19, value=value)
+
+    ws.cell(row=1, column=21, value="Financial Stage")
+    ws.cell(row=1, column=22, value="Count")
+    for i, (label, value) in enumerate(zip(financial_stages, financial_stage_data), start=start_row):
+        ws.cell(row=i, column=21, value=label)
+        ws.cell(row=i, column=22, value=value)
+
+    # Add pie charts
+    add_pie_chart(ws, countries, country_data, "Distribution by Country", 14)
+    add_pie_chart(ws, industries, industry_data, "Distribution by Industry", 17)
+    add_pie_chart(ws, financial_stages, financial_stage_data, "Distribution by Financial Stage", 20)
+
+    # Save to BytesIO and return response
+    with io.BytesIO() as b:
+        wb.save(b)
+        b.seek(0)
+        response = HttpResponse(
+            b.read(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename="unicorns.xlsx"'
+        return response
+
+# Removed map_data view as Geographic Map is removed from UI
+
+def detailed_unicorns(request):
+    unicorns = UnicornCompany.objects.all()
+    return render(request, 'unicorns/detailed_unicorns.html', {'unicorns': unicorns})
+

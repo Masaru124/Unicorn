@@ -1,70 +1,32 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Unicorn Companies Analysis</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-  </head>
-  <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
-      <div class="container">
-        <a class="navbar-brand" href="{% url 'home' %}">Unicorns</a>
-        <button
-          class="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-          aria-controls="navbarNav"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
-        >
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav">
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'home' %}">Home</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'analysis' %}">Analysis</a>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </nav>
-    <div class="container mt-4">
-      <h1 class="mb-4">Unicorn Companies</h1>
-      <table class="table table-striped">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Valuation (USD)</th>
-            <th>Industry</th>
-            <th>Country</th>
-            <th>Founded Year</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for unicorn in unicorns %}
-          <tr>
-            <td>{{ unicorn.name }}</td>
-            <td>${{ unicorn.valuation|floatformat:2 }}</td>
-            <td>{{ unicorn.industry }}</td>
-            <td>{{ unicorn.country }}</td>
-            <td>{{ unicorn.founded_year }}</td>
-          </tr>
+{% extends 'unicorns/base.html' %}
+
+{% block title %}Home - Unicorns{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h1 class="mb-4 text-primary">Welcome to Unicorn Companies Dashboard</h1>
+  <p class="lead">Explore data and analysis of unicorn companies worldwide.</p>
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card p-4 mb-4">
+        <h2 class="h5 mb-3">Latest Unicorns</h2>
+        <ul class="list-group list-group-flush">
+          {% for unicorn in unicorns|slice:":10" %}
+          <li class="list-group-item py-2">
+            <strong>{{ unicorn.name }}</strong> - {{ unicorn.industry }} - {{ unicorn.country }}
+          </li>
           {% empty %}
-          <tr>
-            <td colspan="5">No unicorn companies found.</td>
-          </tr>
+          <li class="list-group-item py-2">No unicorns available.</li>
           {% endfor %}
-        </tbody>
-      </table>
+        </ul>
+      </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  </body>
-</html>
+    <div class="col-md-4">
+      <div class="card p-4 mb-4">
+        <h2 class="h5 mb-3">Summary</h2>
+        <p>Total Unicorn Companies: {{ unicorns|length }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
